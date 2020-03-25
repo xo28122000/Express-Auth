@@ -14,7 +14,6 @@ app.use(cookieParser());
 // app.use(session({ secret: "Your secret key" }));
 
 // mongo
-
 const mongoose = require("mongoose");
 mongoose.connect("mongodb://localhost/test");
 let User = mongoose.model(
@@ -25,7 +24,17 @@ let User = mongoose.model(
     password: { type: String, required: true }
   })
 );
+// end
 
+// sessions
+const sesions = require("client-sessions");
+app.use(
+  sessions({
+    cookieName: "session",
+    secret: "mfwjfwfnwfn",
+    duration: 30 * 60 * 1000
+  })
+);
 // end
 
 const users = [
