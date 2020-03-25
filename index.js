@@ -59,10 +59,10 @@ app.get("/protected", (req, res) => {
 
 app.post("/signup", (req, res) => {
   let user = new User(req.body);
-  console.log(user);
+
   user.save(error => {
     if (error) {
-      if (error === 11000) {
+      if (error.code === 11000) {
         console.log("email not unique");
         res.send("use a unique email");
       } else {
@@ -94,25 +94,33 @@ app.post("/signup", (req, res) => {
 });
 
 app.post("/signin", (req, res) => {
-  const { email, password } = req.body;
-  if (email && password) {
-    const hashedPassword = getHashedPassword(password);
-    const user = users.find(u => {
-      return u.email === email && hashedPassword === u.password;
-    });
-
-    if (user) {
-      const authToken = generateAuthToken();
-      authTokens[authToken] = user;
-      res.cookie("AuthToken", authToken);
-      res.send("some protected data");
+  User.findOne({ email: req.body.email }, (error, user) => {
+    if (error || !user || req.body.password !== user.password) {
+      res.send("username/pass incorrect");
     } else {
-      res.send("not accessable");
+      res.send("secret data");
     }
-  } else {
-    console.log("data missing!");
-    res.sendStatus(400);
-  }
+  });
+  // // // // for local user object
+  //   const { email, password } = req.body;
+  //   if (email && password) {
+  //     const hashedPassword = getHashedPassword(password);
+  //     const user = users.find(u => {
+  //       return u.email === email && hashedPassword === u.password;
+  //     });
+
+  //     if (user) {
+  //       const authToken = generateAuthToken();
+  //       authTokens[authToken] = user;
+  //       res.cookie("AuthToken", authToken);
+  //       res.send("some protected data");
+  //     } else {
+  //       res.send("not accessable");
+  //     }
+  //   } else {
+  //     console.log("data missing!");
+  //     res.sendStatus(400);
+  //   }
 });
 
 app.listen(5000, () => {
