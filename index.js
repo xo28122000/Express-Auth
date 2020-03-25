@@ -15,8 +15,7 @@ app.use(cookieParser());
 
 const users = [
   {
-    firstName: "John",
-    lastName: "Doe",
+    name: "John Doe",
     email: "johndoe@email.com",
     password: "XohImNooBHFR0OVvjcYpJ3NgPQ1qq73WKhHvch0VQtg="
   }
@@ -29,11 +28,30 @@ const getHashedPassword = password => {
   return hash;
 };
 
-app.get("/", (req, res) => {});
+app.get("/", (req, res) => {
+  res.render("<HTML><body>hi!</body></HTML>");
+});
 
 app.post("/signup", (req, res) => {
-  console.log("came here");
-  res.send("workings");
+  console.log(req.body);
+  const { email, name, password } = req.body;
+  if (email & name & password) {
+    if (users.find(user => user.email === email)) {
+      res.send("already registered");
+    } else {
+      const hash = getHashedPassword(password);
+      users.push({
+        name,
+        email,
+        password: hash
+      });
+      res.send("Signed up");
+    }
+  } else {
+    console.log("data missing!");
+    res.sendStatus(400);
+  }
+  console.log(users);
 });
 
 app.listen(5000, () => {
