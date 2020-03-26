@@ -1,16 +1,11 @@
 var express = require("express");
 var app = express();
 var bodyParser = require("body-parser");
-// var multer = require("multer");
-// var upload = multer();
-// var session = require("express-session");
 var cookieParser = require("cookie-parser");
 
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(cookieParser());
-// app.use(upload.array());
-// app.use(session({ secret: "Your secret key" }));
 
 // mongo
 const mongoose = require("mongoose");
@@ -36,15 +31,7 @@ app.use(
 );
 // end
 
-// const users = [
-//   {
-//     name: "John Doe",
-//     email: "johndoe@email.com",
-//     password: "XohImNooBHFR0OVvjcYpJ3NgPQ1qq73WKhHvch0VQtg="
-//   }
-// ];
-
-// get the hashed passcode
+// hashed passcode
 const bcrypt = require("bcryptjs");
 const getHashedPassword = password => {
   const hash = bcrypt.hashSync(password, 14);
@@ -56,9 +43,39 @@ const getHashedPassword = password => {
 //   return crypto.randomBytes(30).toString("hex");
 // };
 
+// middleware
+app.use((req, res, next) => {
+  if (!(req.sesssion && req.session.userId)) {
+    return next();
+  }
+
+  User.findById(req.session.userId, (err, user) => {
+    if (err) {
+      return next(err);
+    }
+    if (!user) {
+      return next();
+    }
+    user.password = undefined;
+
+    req.user = user;
+
+    next();
+  });
+});
+// end
+
 app.get("/", (req, res) => {
   res.send("home");
 });
+
+function loginRequired(req, res, next) {
+  if (!req.user) {
+    returnres.send("please log in firsr");
+  }
+  next();
+}
+
 app.get("/protected", (req, res) => {
   if (!(req.session && req.session.userId)) {
     // forbidden
@@ -94,23 +111,6 @@ app.post("/signup", (req, res) => {
       res.redirect("/protected");
     }
   });
-  //   // // no mongo example
-  //     if (email && name && password) {
-  //       if (users.find(user => user.email === email)) {
-  //         res.send("already registered");
-  //       } else {
-  //         const hash = getHashedPassword(password);
-  //         users.push({
-  //           name,
-  //           email,
-  //           password: hash
-  //       });
-  //       res.send("Signed up");
-  //     }
-  //   } else {
-  //     console.log("data missing!");
-  //     res.sendStatus(400);
-  //   }
 });
 
 app.post("/signin", (req, res) => {
@@ -128,26 +128,6 @@ app.post("/signin", (req, res) => {
       res.redirect("/protected");
     }
   });
-  // // // // for local user object
-  //   const { email, password } = req.body;
-  //   if (email && password) {
-  //     const hashedPassword = getHashedPassword(password);
-  //     const user = users.find(u => {
-  //       return u.email === email && hashedPassword === u.password;
-  //     });
-
-  //     if (user) {
-  //       const authToken = generateAuthToken();
-  //       authTokens[authToken] = user;
-  //       res.cookie("AuthToken", authToken);
-  //       res.send("some protected data");
-  //     } else {
-  //       res.send("not accessable");
-  //     }
-  //   } else {
-  //     console.log("data missing!");
-  //     res.sendStatus(400);
-  //   }
 });
 
 app.listen(5000, () => {
