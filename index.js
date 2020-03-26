@@ -5,7 +5,6 @@ var bodyParser = require("body-parser");
 // var upload = multer();
 // var session = require("express-session");
 var cookieParser = require("cookie-parser");
-const crypto = require("crypto");
 
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
@@ -27,7 +26,7 @@ let User = mongoose.model(
 // end
 
 // sessions
-const sesions = require("client-sessions");
+const sessions = require("client-sessions");
 app.use(
   sessions({
     cookieName: "session",
@@ -45,13 +44,14 @@ app.use(
 //   }
 // ];
 
-// // get the hashed passcode
-// const getHashedPassword = password => {
-//   const sha256 = crypto.createHash("sha256");
-//   const hash = sha256.update(password).digest("base64");
-//   return hash;
-// };
+// get the hashed passcode
+const bcrypt = require("bcryptjs");
+const getHashedPassword = password => {
+  const hash = bcrypt.hashSync(password, 14);
+  return hash;
+};
 
+// const crypto = require("crypto");
 // const generateAuthToken = () => {
 //   return crypto.randomBytes(30).toString("hex");
 // };
@@ -62,19 +62,22 @@ app.get("/", (req, res) => {
 app.get("/protected", (req, res) => {
   if (!(req.session && req.session.userId)) {
     // forbidden
-    res.send(600);
+    console.log("came here ");
+    res.sendStatus(500);
   } else {
     User.findById(req.session.userId, (error, user) => {
       if (error || !user) {
-        res.send(600);
+        console.log("came here 2");
+        res.sendStatus(500);
       } else {
-        res.send(user, "some protected data");
+        res.send(user);
       }
     });
   }
 });
 
 app.post("/signup", (req, res) => {
+  req.body.password = getHashedPassword(req.body.password);
   let user = new User(req.body);
 
   user.save(error => {
@@ -88,7 +91,7 @@ app.post("/signup", (req, res) => {
       }
     } else {
       // no error occured
-      res.send("secret data");
+      res.redirect("/protected");
     }
   });
   //   // // no mongo example
@@ -112,13 +115,17 @@ app.post("/signup", (req, res) => {
 
 app.post("/signin", (req, res) => {
   User.findOne({ email: req.body.email }, (error, user) => {
-    if (error || !user || req.body.password !== user.password) {
+    if (
+      error ||
+      !user ||
+      !bcrypt.compareSync(req.body.password, user.password)
+    ) {
       res.send("username/pass incorrect");
     } else {
       req.session.userId = user._id; // storing the session object
       //   dont store email or password
       // cookies are encrypted
-      res.send("secret data");
+      res.redirect("/protected");
     }
   });
   // // // // for local user object
