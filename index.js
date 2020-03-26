@@ -31,39 +31,47 @@ const sesions = require("client-sessions");
 app.use(
   sessions({
     cookieName: "session",
-    secret: "mfwjfwfnwfn",
+    secret: "mfwjfwfnwfn", //dont upload online
     duration: 30 * 60 * 1000
   })
 );
 // end
 
-const users = [
-  {
-    name: "John Doe",
-    email: "johndoe@email.com",
-    password: "XohImNooBHFR0OVvjcYpJ3NgPQ1qq73WKhHvch0VQtg="
-  }
-];
+// const users = [
+//   {
+//     name: "John Doe",
+//     email: "johndoe@email.com",
+//     password: "XohImNooBHFR0OVvjcYpJ3NgPQ1qq73WKhHvch0VQtg="
+//   }
+// ];
 
-// This will hold the users and authToken related to users
-const authTokens = {};
+// // get the hashed passcode
+// const getHashedPassword = password => {
+//   const sha256 = crypto.createHash("sha256");
+//   const hash = sha256.update(password).digest("base64");
+//   return hash;
+// };
 
-// get the hashed passcode
-const getHashedPassword = password => {
-  const sha256 = crypto.createHash("sha256");
-  const hash = sha256.update(password).digest("base64");
-  return hash;
-};
-
-const generateAuthToken = () => {
-  return crypto.randomBytes(30).toString("hex");
-};
+// const generateAuthToken = () => {
+//   return crypto.randomBytes(30).toString("hex");
+// };
 
 app.get("/", (req, res) => {
   res.send("home");
 });
 app.get("/protected", (req, res) => {
-  res.send("some protected data");
+  if (!(req.session && req.session.userId)) {
+    // forbidden
+    res.send(600);
+  } else {
+    User.findById(req.session.userId, (error, user) => {
+      if (error || !user) {
+        res.send(600);
+      } else {
+        res.send(user, "some protected data");
+      }
+    });
+  }
 });
 
 app.post("/signup", (req, res) => {
@@ -107,6 +115,9 @@ app.post("/signin", (req, res) => {
     if (error || !user || req.body.password !== user.password) {
       res.send("username/pass incorrect");
     } else {
+      req.session.userId = user._id; // storing the session object
+      //   dont store email or password
+      // cookies are encrypted
       res.send("secret data");
     }
   });
