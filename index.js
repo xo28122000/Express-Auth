@@ -26,7 +26,11 @@ app.use(
   sessions({
     cookieName: "session",
     secret: "mfwjfwfnwfn", //dont upload online
-    duration: 30 * 60 * 1000
+    duration: 30 * 60 * 1000,
+    activeDuration: 5 * 60 * 1000,
+    httpOnly: true, // no js ccan access cookie
+    secure: true, // only set cookie over https
+    ephermeral: true // destroy cookie when browser closes
   })
 );
 // end
@@ -65,6 +69,26 @@ app.use((req, res, next) => {
 });
 // end
 
+// CSRF protection
+// this is cross site reference forgery
+// example: if i sign in my token is created and send back,
+// now if i go to some other site and that site sends a request to my server
+// then it would still be sent with a secure cookie and hence would gain access to any
+// info as necessary
+// so all pages with form should be rendered as following
+const csurf = require("csurf");
+app.use(csurf());
+
+app.get("/somepagewithform", (req, res) => {
+  res.render("", { csurfToken: req.csrfToken });
+});
+// end
+
+// helmet
+const helmet = require("helmet");
+app.use(helmet());
+// end
+
 app.get("/", (req, res) => {
   res.send("home");
 });
@@ -76,7 +100,7 @@ function loginRequired(req, res, next) {
   next();
 }
 
-app.get("/protected", (req, res) => {
+app.get("/protected", loginRequired, (req, res) => {
   if (!(req.session && req.session.userId)) {
     // forbidden
     console.log("came here ");
